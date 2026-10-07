@@ -1,4 +1,5 @@
-import os, socket
+import os
+import socket
 from fastapi import FastAPI
 from prometheus_client import Counter, make_asgi_app
 

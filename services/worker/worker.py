@@ -1,4 +1,7 @@
-import logging, os, signal, time
+import logging
+import os
+import signal
+import time
 from prometheus_client import Counter, Gauge, start_http_server
 
 logging.basicConfig(level=logging.INFO)
