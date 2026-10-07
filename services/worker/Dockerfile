@@ -12,4 +12,4 @@ COPY --from=build /install /usr/local
 COPY worker.py .
 USER 10001
 EXPOSE 9000
-CMD ["uvicorn", "app:app", "--host", "0.0.0.0", "--port", "9000"]
+CMD ["python", "worker.py"]
