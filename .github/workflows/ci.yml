@@ -20,11 +20,12 @@ jobs:
       fail-fast: false
       matrix:
         service: [api, worker]
-    env:
-      IMAGE: ghcr.io/${{ github.repository_owner }}/demo-${{ matrix.service }}
 
     steps:
       - uses: actions/checkout@v4
+
+      - name: Set image name
+        run: echo "IMAGE=ghcr.io/${GITHUB_REPOSITORY_OWNER,,}/demo-${{ matrix.service }}" >> "$GITHUB_ENV"
 
       - name: Lint
         run: pipx run ruff check services/${{ matrix.service }}
@@ -42,12 +43,14 @@ jobs:
           cache-to: type=gha,mode=max,scope=${{ matrix.service }}
 
       - name: Scan image
-        uses: aquasecurity/trivy-action@v0.36.0
-        with:
-          image-ref: ${{ env.IMAGE }}:sha-${{ github.sha }}
-          severity: CRITICAL,HIGH
-          ignore-unfixed: true
-          exit-code: "1"
+        run: |
+          docker run --rm \
+            -v /var/run/docker.sock:/var/run/docker.sock \
+            aquasec/trivy:latest image \
+            --severity CRITICAL,HIGH \
+            --ignore-unfixed \
+            --exit-code 1 \
+            "$IMAGE:sha-$GITHUB_SHA"
 
       - name: Log in to GHCR
         if: github.event_name == 'push'
@@ -59,4 +62,4 @@ jobs:
 
       - name: Push image
         if: github.event_name == 'push'
-        run: docker push ${{ env.IMAGE }}:sha-${{ github.sha }}
+        run: docker push "$IMAGE:sha-$GITHUB_SHA"
