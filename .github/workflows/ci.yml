@@ -19,7 +19,13 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        service: [api, worker]
+        include:
+          - service: api
+            port: 8080
+            path: /healthz
+          - service: worker
+            port: 9000
+            path: /metrics
 
     steps:
       - uses: actions/checkout@v4
@@ -41,6 +47,21 @@ jobs:
           labels: org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
           cache-from: type=gha,scope=${{ matrix.service }}
           cache-to: type=gha,mode=max,scope=${{ matrix.service }}
+
+      - name: Smoke test
+        run: |
+          docker run -d --name smoke -p ${{ matrix.port }}:${{ matrix.port }} "$IMAGE:sha-$GITHUB_SHA"
+          for i in $(seq 1 15); do
+            if curl -fsS "localhost:${{ matrix.port }}${{ matrix.path }}" > /dev/null; then
+              echo "Container is up"
+              docker rm -f smoke > /dev/null
+              exit 0
+            fi
+            sleep 2
+          done
+          echo "Container did not become healthy"
+          docker logs smoke
+          exit 1
 
       - name: Scan image
         run: |
